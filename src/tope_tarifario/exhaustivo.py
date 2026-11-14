@@ -30,4 +30,17 @@ def _resolver(viajes: list[int], dia: int, contador: list[int]) -> int:
     )
 
 
+def costo_exhaustivo(viajes_por_dia: list[int]) -> int:
+    """Calcula el costo mínimo probando todas las decisiones recursivas.
+
+    Args:
+        viajes_por_dia: Viajes de la tarjeta en cada día del mes.
+
+    Returns:
+        El costo mínimo en pesos.
+    """
+    validar_viajes(viajes_por_dia)
+    return _resolver(viajes_por_dia, 0, [0])
+
+
 
