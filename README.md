@@ -52,4 +52,56 @@ El objetivo es garantizar que ningún usuario con tarjeta personalizada pague, e
 4. Se admiten cero viajes por día; no se admiten cantidades negativas (la implementación lanza `ValueError`).
 5. **Interpretación de la regla actual.** El caso dice que cada día se cobra lo más barato entre pasajes y pase diario, y que se aplica el pase semanal o mensual si la suma ya lo supera. Se interpretó así: desde el primer día con viajes, los días se agrupan en bloques fijos de 7 días; si el cobro diario acumulado de un bloque supera el pase semanal, ese bloque se cobra al precio del pase semanal. Los bloques semanales se agrupan a su vez en bloques fijos de 30 días; si su suma supera el pase mensual, se cobra el mensual. La regla decide por bloques fijos y nunca reconsidera en qué día conviene empezar un pase. Esta interpretación debe confirmarse con la organización si existe una regla operativa más precisa.
 
----
+## 2. Diseño de la solución
+
+### Por qué programación dinámica
+
+La decisión de comprar un pase semanal o mensual afecta el costo de varios días a la vez, así que elegir lo más barato para cada día por separado no siempre da el mínimo.
+
+- **Subestructura óptima:** después de elegir un producto para cubrir los primeros días que quedan, el costo del resto del mes también debe ser el mínimo posible para esos días restantes.
+- **Subproblemas traslapados:** distintas combinaciones de productos llegan a calcular el costo mínimo desde el mismo día. Por ejemplo, "pasaje el día 1 y pasaje el día 2" y "pase diario el día 1 y pasaje el día 2" terminan ambos preguntando por el día 3. Guardar el resultado de cada día evita repetirlo.
+
+### Ejemplo resuelto a mano
+
+Tarjeta con siete días de viajes:
+
+| Día | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|
+| Viajes | 3 | 3 | 3 | 0 | 2 | 0 | 3 |
+
+Costo diario más barato: con 3 viajes, el pase diario ($9.500) es mejor que tres pasajes ($11.700); con 2 viajes, dos pasajes ($7.800) son mejores. Pagar día por día cuesta 4 × $9.500 + $7.800 = $45.800. El pase semanal cubre los siete días por $36.000.
+
+Para confirmar que $36.000 es el mínimo se calcula `C(t)` de atrás hacia adelante:
+
+| Día `t` | Viajes | Alternativas | `C(t)` |
+|---|---|---|---|
+| 8 | — | caso base | $0 |
+| 7 | 3 | 9.500 + 0 · 36.000 + 0 | $9.500 |
+| 6 | 0 | `C(7)` | $9.500 |
+| 5 | 2 | 7.800 + 9.500 = 17.300 · 36.000 + 0 | $17.300 |
+| 4 | 0 | `C(5)` | $17.300 |
+| 3 | 3 | 9.500 + 17.300 = 26.800 · 36.000 + 0 | $26.800 |
+| 2 | 3 | 9.500 + 26.800 = 36.300 · 36.000 + 0 | $36.000 |
+| 1 | 3 | 9.500 + 36.000 = 45.500 · 36.000 + 0 | **$36.000** |
+
+Hasta el día 3 conviene pagar solo ese día (26.800 contra 36.000). En el día 2 pagar día por día ya cuesta 36.300 y el pase semanal, 36.000, gana; en el día 1 también gana y cubre todo el periodo. El resultado (36.000) está verificado en `pruebas.py`.
+
+### Recurrencia
+
+Sea `d` el número de días del periodo (numerados de 1 a `d`) y `v(t)` los viajes del día `t`. `C(t)` es el costo mínimo de cubrir los viajes desde el día `t` hasta el día `d`.
+
+- **Caso base:** `C(d+1) = 0` (no queda nada por cubrir).
+- Si `v(t) = 0`: `C(t) = C(t+1)` (un día sin viajes no cuesta nada).
+- Si `v(t) > 0`:
+
+```
+C(t) = min(  min(3900·v(t), 9500) + C(t+1),      # pasajes o pase diario, solo hoy
+             36000 + C(min(t+7,  d+1)),           # pase semanal desde hoy
+             135000 + C(min(t+30, d+1)) )         # pase mensual desde hoy
+```
+
+Cada término explica una decisión: la primera cubre solo el día `t` con lo más barato entre pasajes y pase diario; la segunda compra un pase semanal que cubre `t..t+6` y salta al primer día no cubierto; la tercera hace lo mismo con el pase mensual. `min(·, d+1)` impide pasarse del final del periodo (el pase "sobrante" no cobra de más).
+
+**Orden de llenado:** la tabla se llena de atrás hacia adelante (`t = d, d-1, …, 1`), porque `C(t)` depende solo de días posteriores (`t+1`, `t+7`, `t+30`), que ya están calculados. La respuesta es `C(1)`.
+
+La devolución se calcula como `max(0, cobrado − C(1))`.
