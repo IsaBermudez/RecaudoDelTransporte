@@ -1,4 +1,4 @@
-# Rediseño del proceso nocturno de recaudo del SITVM
+# Proceso nocturno de recaudo del SITVM
 
 **Integrantes:** 
 - Isabella Bermudez Arboleda
