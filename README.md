@@ -1,4 +1,4 @@
-# Proceso nocturno de recaudo del SITVM
+# Rediseño del proceso nocturno de recaudo del SITVM
 
 **Integrantes:** 
 - Isabella Bermudez Arboleda
@@ -8,6 +8,8 @@
 
 **Caso asignado:** Caso 1 – Recaudo del transporte (Sistema Integrado de Transporte del Valle Metropolitano, SITVM)
 **Operación desarrollada en esta entrega (Laboratorio 4):** operación 4, liquidación del tope tarifario (programación dinámica).
+
+> Las demás operaciones del caso (deduplicación, ordenamiento y franjas de congestión) y el proceso completo se dejan como **Pendiente para la entrega del 23 de noviembre**.
 
 ---
 
@@ -50,7 +52,9 @@ El objetivo es garantizar que ningún usuario con tarjeta personalizada pague, e
 2. Un pase siempre se compra el primer día aún no cubierto que tenga viajes. Los días sin viajes no generan cobro y no impiden que un pase vigente cubra días posteriores. Esta suposición se verificó con una fuerza bruta que prueba pases en cualquier día de inicio (ver sección 4).
 3. La lista puede ser de un mes de 28, 29, 30 o 31 días. En un mes de 31 días, un pase mensual no cubre el último día, que se paga aparte (por ejemplo, 31 días con 3 viajes diarios cuestan $135.000 + $9.500 = $144.500).
 4. Se admiten cero viajes por día; no se admiten cantidades negativas (la implementación lanza `ValueError`).
-5. **Interpretación de la regla actual.** El caso dice que cada día se cobra lo más barato entre pasajes y pase diario, y que se aplica el pase semanal o mensual si la suma ya lo supera. Se interpretó así: desde el primer día con viajes, los días se agrupan en bloques fijos de 7 días; si el cobro diario acumulado de un bloque supera el pase semanal, ese bloque se cobra al precio del pase semanal. Los bloques semanales se agrupan a su vez en bloques fijos de 30 días; si su suma supera el pase mensual, se cobra el mensual. La regla decide por bloques fijos y nunca reconsidera en qué día conviene empezar un pase. Esta interpretación debe confirmarse con la organización si existe una regla operativa más precisa.
+5. **Interpretación de la regla actual.** El caso dice que cada día se cobra lo más barato entre pasajes y pase diario, y que se cobra el pase semanal o mensual si la suma ya lo supera. Se interpretó así: desde el primer día con viajes, los días se agrupan en bloques fijos de 7 días, y si su cobro diario supera el pase semanal, se cobra este; igual con bloques fijos de 30 días y el pase mensual. La regla nunca reconsidera en qué día conviene empezar un pase.
+
+---
 
 ## 2. Diseño de la solución
 
@@ -105,3 +109,6 @@ Cada término explica una decisión: la primera cubre solo el día `t` con lo m�
 **Orden de llenado:** la tabla se llena de atrás hacia adelante (`t = d, d-1, …, 1`), porque `C(t)` depende solo de días posteriores (`t+1`, `t+7`, `t+30`), que ya están calculados. La respuesta es `C(1)`.
 
 La devolución se calcula como `max(0, cobrado − C(1))`.
+
+---
+
