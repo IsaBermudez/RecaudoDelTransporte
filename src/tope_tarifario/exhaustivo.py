@@ -58,4 +58,36 @@ def costo_exhaustivo_contado(viajes_por_dia: list[int]) -> tuple[int, int]:
     return costo, contador[0]
 
 
+def costo_fuerza_bruta(viajes_por_dia: list[int]) -> int:
+    """Prueba TODOS los subconjuntos de pases (verifica el modelo).
 
+    Args:
+        viajes_por_dia: Viajes de la tarjeta (máximo 7 días).
+
+    Returns:
+        El costo mínimo en pesos.
+
+    Raises:
+        ValueError: Si la instancia tiene más de 7 días.
+    """
+    validar_viajes(viajes_por_dia)
+    n = len(viajes_por_dia)
+    if n > 7:
+        raise ValueError("La fuerza bruta solo admite instancias de 7 días.")
+    mejor = float("inf")
+    for eleccion in product((False, True), repeat=2 * n):
+        costo = 0
+        cubierto = [False] * n
+        for dia in range(n):
+            if eleccion[2 * dia]:
+                costo += SEMANAL
+                for k in range(dia, min(dia + DIAS_SEMANA, n)):
+                    cubierto[k] = True
+            if eleccion[2 * dia + 1]:
+                costo += MENSUAL
+                for k in range(dia, min(dia + DIAS_MES, n)):
+                    cubierto[k] = True
+        costo += sum(costo_dia(v) for v, c in zip(viajes_por_dia, cubierto)
+                     if not c)
+        mejor = min(mejor, costo)
+    return int(mejor)
