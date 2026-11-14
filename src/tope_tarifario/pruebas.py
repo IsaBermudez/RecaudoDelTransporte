@@ -66,13 +66,56 @@ def probar_contadores() -> None:
         assert costo_minimo_contado(instancia)[1] == len(instancia)
 
 
+def probar_liquidacion() -> None:
+    """Verifica que la devolución es la diferencia exacta."""
+    minimo = costo_minimo(EJEMPLO_MANO)
+    assert liquidar_tope(EJEMPLO_MANO, minimo + 4000) == 4000
+    assert liquidar_tope(EJEMPLO_MANO, minimo) == 0
+    assert liquidar_tope(EJEMPLO_MANO, minimo - 1) == 0  # nunca negativa
+    assert liquidar_tope(EJEMPLO_MANO, 0) == 0
+    cobrado_regla = costo_regla_actual(CONTRAEJEMPLO)
+    assert liquidar_tope(CONTRAEJEMPLO, cobrado_regla) == 9500
+    for instancia in generar_instancias(50, 31, 5, 99, prob_dia=0.8):
+        cobrado = costo_regla_actual(instancia)
+        devolucion = liquidar_tope(instancia, cobrado)
+        assert devolucion == cobrado - costo_minimo(instancia)
+        assert devolucion >= 0
+        assert cobrado - devolucion == costo_minimo(instancia)
+
+
+def probar_regla_actual() -> None:
+    """Verifica que la regla actual nunca baja del mínimo y falla a veces."""
+    assert costo_regla_actual(CONTRAEJEMPLO) == 55000
+    assert costo_minimo(CONTRAEJEMPLO) == 45500
+    assert costo_regla_actual(CONTRAEJEMPLO) > costo_minimo(CONTRAEJEMPLO)
+    peores = 0
+    for instancia in generar_instancias(300, 31, 5, 3, prob_dia=0.7):
+        assert costo_regla_actual(instancia) >= costo_minimo(instancia)
+        peores += costo_regla_actual(instancia) > costo_minimo(instancia)
+    assert peores > 0
+
+
+def probar_entradas_invalidas() -> None:
+    """Verifica que los viajes negativos se rechazan."""
+    for funcion in (costo_minimo, costo_exhaustivo, costo_regla_actual):
+        try:
+            funcion([1, -1])
+        except ValueError:
+            continue
+        raise AssertionError("Se esperaba ValueError para viajes negativos.")
+
+
 def ejecutar_pruebas() -> None:
     """Ejecuta todas las pruebas del Caso 1."""
     probar_casos_limite()
     probar_ejemplo_manual()
     probar_contra_exhaustivo()
     probar_contadores()
+    probar_liquidacion()
+    probar_regla_actual()
+    probar_entradas_invalidas()
     print("Todas las pruebas del Caso 1 fueron superadas.")
+
 
 if __name__ == "__main__":
     ejecutar_pruebas()
