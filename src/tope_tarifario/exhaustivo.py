@@ -43,4 +43,19 @@ def costo_exhaustivo(viajes_por_dia: list[int]) -> int:
     return _resolver(viajes_por_dia, 0, [0])
 
 
+def costo_exhaustivo_contado(viajes_por_dia: list[int]) -> tuple[int, int]:
+    """Calcula el costo exhaustivo y cuenta las llamadas recursivas.
+
+    Args:
+        viajes_por_dia: Viajes de la tarjeta en cada día del mes.
+
+    Returns:
+        Una pareja (costo mínimo en pesos, número de llamadas).
+    """
+    validar_viajes(viajes_por_dia)
+    contador = [0]
+    costo = _resolver(viajes_por_dia, 0, contador)
+    return costo, contador[0]
+
+
 
