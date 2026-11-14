@@ -64,3 +64,15 @@ def probar_contadores() -> None:
         assert costo_regla_actual_contado(instancia)[0] == \
             costo_regla_actual(instancia)
         assert costo_minimo_contado(instancia)[1] == len(instancia)
+
+
+def ejecutar_pruebas() -> None:
+    """Ejecuta todas las pruebas del Caso 1."""
+    probar_casos_limite()
+    probar_ejemplo_manual()
+    probar_contra_exhaustivo()
+    probar_contadores()
+    print("Todas las pruebas del Caso 1 fueron superadas.")
+
+if __name__ == "__main__":
+    ejecutar_pruebas()
