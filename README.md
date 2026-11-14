@@ -132,3 +132,169 @@ Decisiones de implementación relevantes:
 - Entradas con viajes negativos lanzan `ValueError`.
 
 ---
+
+## 4. Evaluación del desempeño
+
+### Complejidad
+
+Sea `d` el número de días del periodo y `k` el número de días con viajes.
+
+| | Tiempo | Espacio |
+|---|---|---|
+| Programación dinámica | Θ(d): una celda por día, con tres alternativas de costo constante | Θ(d): la tabla de `d+1` celdas |
+| Solución exhaustiva | Exponencial en `k`: `T(t) = T(t+1) + T(t+7) + T(t+30) + Θ(1)`, que crece como λᵏ con λ ≈ 1,28 | Θ(d) por la profundidad de la recursión (cada llamada avanza al menos un día) |
+
+La exhaustiva repite los mismos subproblemas (los mismos días de inicio se alcanzan por muchos caminos); la DP los calcula una sola vez.
+
+### Cómo se verificó
+
+`pruebas.py` (ejecutable con `python src/tope_tarifario/pruebas.py`) comprueba:
+
+- **Casos límite:** lista vacía, un solo día, solo días sin viajes, un viaje, muchos viajes en un día, 7 días de pasajes sencillos, 7 días con pase semanal, 30 días con pase mensual y mes de 31 días.
+- **Ejemplo a mano:** `[3,3,3,0,2,0,3]` da $36.000 con las tres soluciones.
+- **Instancias aleatorias con semilla fija:** 75 comparaciones (25 contra la exhaustiva con 9 días, 25 contra la fuerza bruta con 7 días y 25 de hasta 40 días contra la exhaustiva) donde coinciden.
+- **Restricción del negocio:** la devolución es exactamente `cobrado − mínimo` en 50 instancias de 31 días, nunca es negativa y `cobrado − devolución = mínimo`.
+- **Regla actual:** nunca cobra menos que el mínimo (300 instancias) y falla en el contraejemplo de la sección 5.
+
+### Medición
+
+Datos en [`datos.py`](src/tope_tarifario/datos.py) y experimentos en [`medicion.py`](src/tope_tarifario/medicion.py).
+
+- **Cómo se midió:** semilla fija (2026 + n), 3 instancias por tamaño, las mismas para las tres soluciones; 95 % de los días con viajes y hasta 4 viajes por día. Solo se cronometra la ejecución con `time.perf_counter()`. Se repite 200 veces cada DP y regla actual por instancia, y entre 1 y 5 veces la exhaustiva según su tamaño. En cada tamaño se verifica que la DP y la exhaustiva den el mismo valor.
+- **Tamaños:** 10, 15, 20, 25, 30, 40, 50 y 60 días. Además, la DP y la regla actual se midieron solas hasta 122.880 días para sostener la extrapolación.
+
+![Tiempo de ejecución frente a los días del periodo](graficas/tope_tarifario/tiempo_vs_n.png)
+
+![Operaciones frente a los días del periodo](graficas/tope_tarifario/operaciones_vs_n.png)
+
+En la gráfica de operaciones la programación dinámica y la regla actual cuentan lo mismo (una operación por día, `d`), por eso sus líneas coinciden y la regla se dibuja encima de la DP con trazo punteado.
+
+Operaciones elementales (celdas calculadas para la DP, llamadas recursivas para la exhaustiva, días revisados para la regla actual; promedio de 3 instancias):
+
+| Días | DP | Exhaustiva | Regla actual |
+|---|---|---|---|
+| 10 | 10 | 48 | 10 |
+| 15 | 15 | 141 | 15 |
+| 20 | 20 | 497 | 20 |
+| 25 | 25 | 1.406 | 25 |
+| 30 | 30 | 4.491 | 30 |
+| 40 | 40 | 39.747 | 40 |
+| 50 | 50 | 342.928 | 50 |
+| 60 | 60 | 3.928.323 | 60 |
+
+### Lo medido contra lo esperado
+
+Al duplicar el tamaño, cuánto se multiplicó cada medida (tabla impresa por `medicion.py`; los tiempos varían un poco en cada ejecución):
+
+| Duplicación | DP: tiempo | DP: operaciones | Exhaustiva: tiempo | Exhaustiva: operaciones | Regla: tiempo |
+|---|---|---|---|---|---|
+| 10 → 20 | ×0,73 | ×2,00 | ×14,05 | ×10,42 | ×2,91 |
+| 20 → 40 | ×1,43 | ×2,00 | ×169,94 | ×80,03 | ×6,21 |
+| 30 → 60 | ×0,59 | ×2,00 | ×302,85 | ×874,71 | ×0,48 |
+
+- **DP:** al duplicar `d`, las operaciones se duplican exactamente (×2,00), lo que coincide con Θ(d). El tiempo, en cambio, no se ve duplicar (×0,73, ×1,43 y ×0,59): entre 10 y 60 días la DP tarda entre 19 y 56 µs, y a esa escala el ruido de la máquina pesa más que el crecimiento (en la gráfica de tiempo la línea azul sube y baja sin una tendencia clara). La linealidad sí se ve en las mediciones a gran escala: de 30 a 122.880 días (×4.096) el tiempo pasó de 0,016 ms a 70 ms (≈ ×4.400), unos 0,5 µs por día en todos los tamaños.
+- **Exhaustiva:** el factor no es constante, sino que crece con el tamaño (en operaciones ×10, ×80 y ×875). Eso es lo esperado de un crecimiento exponencial: al duplicar `d` el factor es aproximadamente λᵈ. Con λ ≈ 1,28 (la razón que se mide entre 50 y 60 días) se esperaría cerca de ×12, ×130 y ×1.500 para `d` = 10, 20 y 30. Los factores medidos quedan por debajo porque la razón por día entre tamaños consecutivos no siempre llega a 1,28 (entre 30 y 40 días es 1,24) y su promedio entre 10 y 60 días es de unos 1,25, que daría ×9,6, ×93 y ×890, cerca de lo medido. El tiempo crece igual de rápido en conjunto (de 10 a 60 días, ≈ ×65.700 frente a ≈ ×82.400 en operaciones), pero no factor a factor (×14, ×170 y ×303): el tiempo por llamada no fue constante (entre 0,25 y 0,94 µs) y a 50 y 60 días solo se cronometró una repetición por instancia. Desde 15 días la DP es más rápida que la exhaustiva y a 60 días lo es unas 29.000 veces; con 10 días ocurre lo contrario por el ruido de la medición.
+- **Regla actual:** crece de forma lineal como la DP (×2,00 en operaciones); en tiempo sus factores son igual de ruidosos, con un pico a 40 días en la gráfica. Su costo es del mismo orden que el de la DP (a gran escala es entre 1,1 y 1,8 veces más rápida); lo que la diferencia de la DP es el resultado, no el costo de cómputo.
+
+### Extrapolación al volumen real
+
+Estimación con series de 31 días (80 % de días con viaje) y 950.000 tarjetas, ventana de 4 horas y potencia de 500 W (0,5 kW). Son **estimaciones** hechas en un solo equipo y salen de una sola ejecución de `medicion.py`; en otras ejecuciones el tiempo por tarjeta de la DP varió entre 11 y 19 µs, así que deben leerse como órdenes de magnitud.
+
+Razonamiento: cada tarjeta se liquida de forma independiente de las demás, así que el tiempo total es lineal en el número de tarjetas: tiempo total = tiempo por tarjeta × 950.000. Esa regla de tres es válida solo por esa independencia, y se aplica al tiempo de una tarjeta de 31 días medido directamente (no extrapolado desde un tamaño menor).
+
+| Solución | Por tarjeta | 950.000 tarjetas | ¿Cabe en 4 h? | kWh por cierre | kWh por año (12 cierres) |
+|---|---|---|---|---|---|
+| Programación dinámica | ≈ 18,8 µs | ≈ 17,9 s | Sí | 0,00249 | 0,0298 |
+| Regla actual | ≈ 12,6 µs | ≈ 12,0 s | Sí | 0,00166 | 0,0199 |
+| Exhaustiva (esta recursión) | ≈ 873 µs | ≈ 829 s (0,230 h) | Sí | 0,1152 | 1,382 |
+
+Energía: kWh = kW × h, por ejemplo 0,5 kW × 0,0050 h ≈ 0,0025 kWh para la DP.
+
+- **La exhaustiva con esta recursión sí cabe para 31 días**, pero su costo crece ×1,28 por cada día adicional con viajes (×1.503 por 30 días más): extrapolando desde los 0,97 s medidos a 60 días, a 90 días ya tardaría unas 0,40 h *por tarjeta* y a 120 días unas 606 h. Es decir, no termina en un horizonte largo.
+- **El programa actual descrito por el cliente es mucho más grande:** prueba cualquier combinación de pases en cualquier día de inicio. Su número de combinaciones es 2^(2d) en la fuerza bruta incluida (≈ 2⁶² para 31 días), por lo que sencillamente no terminaría para tarjetas con muchos días de viaje, como dice el caso.
+- **Diferencia a un año entre la regla actual y la DP:** la DP consume unos **0,0099 kWh más al año** que la regla actual (0,0298 frente a 0,0199 kWh). Es una diferencia despreciable; el argumento a favor de la DP no es el consumo, es que la regla actual cobra de más.
+
+---
+
+## 5. Análisis comparativo
+
+### Contraejemplo de la regla actual
+
+Tarjeta con 3 viajes el día 1, ningún viaje los días 2 a 4 y 3 viajes diarios los días 5 a 9:
+
+`[3, 0, 0, 0, 3, 3, 3, 3, 3]`
+
+- **Regla actual:** el bloque semanal de los días 1 a 7 acumula el día 1 y los días 5, 6 y 7: 4 × $9.500 = $38.000, que supera el pase semanal, así que se cobran $36.000. El bloque de los días 8 y 9 cobra 2 × $9.500 = $19.000. Total: **$55.000**.
+- **Óptimo (DP):** pase diario el día 1 ($9.500) y pase semanal desde el día 5, que cubre los días 5 a 11 ($36.000). Total: **$45.500**.
+- **Diferencia:** **$9.500** que la regla actual cobra de más y el sistema no devolvería.
+
+La regla falla porque sus bloques semanales empiezan en el primer día con viajes y no se mueven; no considera que conviene empezar el pase el día 5, después de la pausa. Esta instancia está verificada en `pruebas.py`.
+
+### Condición contraria
+
+La estrategia voraz sería adecuada si solo existieran pasajes sencillos y pase diario: cada día se decidiría por separado entre dos productos de cobertura de un día y no afectaría a los días siguientes, así que bastaría con elegir lo más barato cada día. Con pases de varios días, una decisión de hoy afecta a los días siguientes, y por eso se requiere programación dinámica.
+
+### Recomendación
+
+Se recomienda adoptar la programación dinámica para liquidar el tope de cada tarjeta, en lugar de la exploración exhaustiva y de la regla simplificada.
+
+- **Qué se gana:** devoluciones exactas (la regla actual cobra de más en el contraejemplo y con ella hay quejas), un tiempo de unos 18 s para las 950.000 tarjetas (frente a 4 h de ventana) y la posibilidad de liquidar todas las tarjetas en la noche del cierre y no semanas después.
+- **Límites y riesgos:**
+  - Si el volumen crece (por ejemplo, 30 % más validaciones), el tiempo crece de forma lineal: sería del orden de 23 s, muy por debajo de la ventana.
+  - Si se crea un nuevo producto (por ejemplo, un pase de 15 días), basta agregar una alternativa a la recurrencia; el costo sigue siendo Θ(d).
+  - Los tiempos medidos son de Python en un equipo de desarrollo; deben medirse de nuevo en el servidor real.
+  - La interpretación de la regla actual (supuesto 5) debe confirmarse con la organización.
+
+---
+
+## 6. Implicaciones éticas, sociales y ambientales
+
+### Consumo energético (operación 4)
+
+A 500 W y con las estimaciones de la sección 4, la liquidación del cierre de mes consume unos 0,0025 kWh con la DP y unos 0,0017 kWh con la regla actual. A un año de operación (12 cierres): 0,0298 kWh frente a 0,0199 kWh, es decir, unos 0,0099 kWh más para la DP. Es una diferencia despreciable frente al beneficio de devolver exactamente lo que corresponde. Son estimaciones obtenidas de una medición en un solo equipo.
+
+Pendiente para la entrega del 23 de noviembre: personas, normativa y crecimiento, y el consumo del proceso completo.
+
+---
+
+## 7. Conclusiones
+
+Pendiente para la entrega del 23 de noviembre.
+
+---
+
+## 8. Reproducción
+
+Abra una terminal dentro de la carpeta `RecaudoDelTransporte` y cree el entorno virtual:
+
+**Windows**
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+**Linux / macOS**
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Con el entorno virtual activado, instale las dependencias del proyecto mediante el archivo `requirements.txt`:
+
+```bash
+pip install -r requirements.txt
+```
+
+Ejecute el archivo `pruebas.py` para validar el correcto funcionamiento de los métodos:
+
+```bash
+python src/tope_tarifario/pruebas.py
+```
+
+Ejecute el archivo `medicion.py` para las mediciones de tiempo y la generación de las gráficas en `graficas/tope_tarifario/`:
+
+```bash
+python src/tope_tarifario/medicion.py
+```
