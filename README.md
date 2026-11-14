@@ -112,3 +112,23 @@ La devolución se calcula como `max(0, cobrado − C(1))`.
 
 ---
 
+## 3. Implementación
+
+Código en [`src/tope_tarifario/`](src/tope_tarifario/):
+
+| Módulo | Contenido |
+|---|---|
+| [`estrategia.py`](src/tope_tarifario/estrategia.py) | `costo_minimo` (programación dinámica con tabulación), `liquidar_tope`, `costo_minimo_contado` (con contador de celdas) |
+| [`exhaustivo.py`](src/tope_tarifario/exhaustivo.py) | `costo_exhaustivo` (recursión sin memoria), `costo_exhaustivo_contado`, `costo_fuerza_bruta` (prueba todos los subconjuntos de pases, solo para 7 días o menos) |
+| [`regla_actual.py`](src/tope_tarifario/regla_actual.py) | `costo_regla_actual` (regla simplificada del sistema) y su versión con contador |
+| [`pruebas.py`](src/tope_tarifario/pruebas.py) | Pruebas con `assert` |
+
+Decisiones de implementación relevantes:
+
+- Todo está escrito a mano, sin bibliotecas de optimización. Las funciones llevan type hints y docstrings Google-style y cumplen PEP 8.
+- La DP usa tabulación (un arreglo de `d+1` posiciones) y no recursión, para evitar el límite de recursión de Python en periodos largos.
+- Las versiones `_contado` son copias de las funciones con un contador propio. Se mantienen aparte para que el contador no altere los tiempos medidos.
+- Se agregó `costo_fuerza_bruta` porque `costo_exhaustivo` usa la misma recurrencia sin memoria: verifica el código pero no el modelo. La fuerza bruta no supone que un pase empiece en un día con viajes, así que valida el supuesto 2.
+- Entradas con viajes negativos lanzan `ValueError`.
+
+---
