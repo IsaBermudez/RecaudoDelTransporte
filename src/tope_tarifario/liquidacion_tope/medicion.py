@@ -20,8 +20,8 @@ from regla_actual import (  # noqa: E402
     costo_regla_actual, costo_regla_actual_contado
 )
 
-RAIZ = Path(__file__).resolve().parents[2]
-SALIDA = RAIZ / "graficas" / "tope_tarifario"
+RAIZ = Path(__file__).resolve().parents[3]
+SALIDA = RAIZ / "graficas" / "tope_tarifario" / "liquidacion_tope"
 SEMILLA = 2026
 PROB_DIA = 0.95          # "todos o casi todos" los días con viaje
 MAX_VIAJES = 4
