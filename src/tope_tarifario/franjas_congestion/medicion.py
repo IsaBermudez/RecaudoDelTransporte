@@ -8,13 +8,13 @@ from typing import Callable
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.ticker import FuncFormatter  # noqa: E402
+import matplotlib.pyplot as plt  
+from matplotlib.ticker import FuncFormatter  
 
-from datos import (  # noqa: E402
+from datos import (  
     DIAS_HISTORICO, INTERVALOS_DIA, generar_series
 )
-from estrategias import (  # noqa: E402
+from estrategias import (  
     dividir_y_vencer, dividir_y_vencer_contado, fuerza_bruta,
     fuerza_bruta_contado, kadane, kadane_contado
 )
@@ -24,12 +24,11 @@ SALIDA = RAIZ / "graficas" / "tope_tarifario" / "franjas_congestion"
 SEMILLA = 2026
 INSTANCIAS_POR_TAMANO = 3
 TAMANOS_COMPARACION = [500, 1000, 2000, 4000, 8000, 16000]
-TAMANOS_ESCALA = [1000 * 2 ** k for k in range(0, 11)]  # 1.000 ... 1.024.000
-N_HISTORICO = DIAS_HISTORICO * INTERVALOS_DIA  # 166.440 intervalos
+TAMANOS_ESCALA = [1000 * 2 ** k for k in range(0, 11)]  
+N_HISTORICO = DIAS_HISTORICO * INTERVALOS_DIA  
 
 Funcion = Callable[[list[int]], tuple[int, int, int]]
 
-# Un color por estrategia, el mismo en todas las gráficas.
 CLAVES = ("fb", "dv", "k")
 COLORES = {"fb": "#2a78d6", "dv": "#eb6834", "k": "#1baf7a"}
 MARCADORES = {"fb": "s", "dv": "^", "k": "o"}
